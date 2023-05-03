@@ -13,7 +13,7 @@ library(tidyverse)
 library(ggdendro)
 library(pheatmap)
 
-setwd("/scratch/Shares/rinnclass/CLASS_2023/kurt/Final_Project/02_clustering")
+setwd("/scratch/Shares/rinnclass/CLASS_2023/kurt/CLASS_2023/Final_Project/02_clustering")
 
 # create folders
 if (dir.exists("figures") == F){

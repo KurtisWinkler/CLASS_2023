@@ -15,7 +15,7 @@ library(circlize)
 source("../util/my_class_functions.R")
 source("../util/_setup.R")
 
-setwd("/scratch/Shares/rinnclass/CLASS_2023/kurt/Final_Project/03_metaplots")
+setwd("/scratch/Shares/rinnclass/CLASS_2023/kurt/CLASS_2023/Final_Project/03_metaplots")
 
 # create folders
 if (dir.exists("figures") == F){

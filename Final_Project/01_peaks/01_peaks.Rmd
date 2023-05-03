@@ -13,7 +13,7 @@ library(tidyverse)
 library(IRanges)
 source("../util/my_class_functions.R")
 
-setwd("/scratch/Shares/rinnclass/CLASS_2023/kurt/Final_Project/01_peaks")
+setwd("/scratch/Shares/rinnclass/CLASS_2023/kurt/CLASS_2023/Final_Project/01_peaks")
 
 # create folders
 if (dir.exists("results") == F){
@@ -222,7 +222,10 @@ peak_occurence_df <- data.frame("gene_id" = colnames(promoter_peak_occurence),
 # Let's write out this data frame -- all this code & run time is now encapsulated in one .csv :)
 write_csv(peak_occurence_df, "results/peak_occurence_dataframe.csv")
 
-save(filtered_consensus_list, gencode_genes, lncrna_gene_ids, mrna_gene_ids, num_peaks_df, peak_occurence_df, lncrna_mrna_promoters, mrna_lncrna_genes, human_tfs_full, file = "results/peak_features.RData")
+save(filtered_consensus_list, gencode_genes, lncrna_gene_ids, mrna_gene_ids, num_peaks_df, peak_occurence_df, 
+     file = "results/peak_features.RData")
+
+save(lncrna_mrna_promoters, mrna_lncrna_genes, human_tfs_full, file = "results/peak_features2.RData")
 
 # awesome - now we never have to load in consensus peaks again :)
 # erase environment and reload!

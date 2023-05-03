@@ -14,7 +14,7 @@ library(ggrepel)
 library(pheatmap)
 library(ggpubr)
 
-setwd("/scratch/Shares/rinnclass/CLASS_2023/kurt/Final_Project/04_RNAseq")
+setwd("/scratch/Shares/rinnclass/CLASS_2023/kurt/CLASS_2023/Final_Project/04_RNAseq")
 source("../util/intersect_functions.R")
 source("../util/_setup.R")
 source("../util/plotting_functions.R")

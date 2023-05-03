@@ -16,12 +16,13 @@ knitr::opts_chunk$set(echo = TRUE)
 options(stringsAsFactors = F)
 library(tidyverse)
 
-setwd("/scratch/Shares/rinnclass/CLASS_2023/kurt/Final_Project")
+setwd("/scratch/Shares/rinnclass/CLASS_2023/kurt/CLASS_2023/Final_Project")
 
 ```
 
 ```{r import files/data, results='hide'}
 load("01_peaks/results/peak_features.RData", verbose = T)
+load("01_peaks/results/peak_features2.RData", verbose = T)
 load("04_RNAseq/results/nuc_cyto.RData", verbose = T)
 ```
 
