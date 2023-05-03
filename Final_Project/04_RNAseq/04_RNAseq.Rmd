@@ -1,0 +1,444 @@
+---
+title: "04_RNAseq"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = F)
+library(tidyverse)
+library(GenomicRanges)
+library(ggpubr)
+library(DESeq2)
+library(ggrepel)
+library(pheatmap)
+library(ggpubr)
+
+setwd("/scratch/Shares/rinnclass/CLASS_2023/kurt/Final_Project/04_RNAseq")
+source("../util/intersect_functions.R")
+source("../util/_setup.R")
+source("../util/plotting_functions.R")
+
+# create folders
+if (dir.exists("figures") == F){
+  dir.create("figures")}
+if (dir.exists("results") == F){
+  dir.create("results")}
+```
+
+
+```{r load in RNAseq data}
+salmon_tpm <- read.csv("/scratch/Shares/rinnclass/CLASS_working_files/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_tpm.csv")
+
+counts <- read_csv("/scratch/Shares/rinnclass/CLASS_working_files/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/NF_CORE_RUN/results/salmon/salmon_merged_gene_counts.csv")
+
+samplesheet <- read_rds("/scratch/Shares/rinnclass/CLASS_working_files/class_exeRcises/analysis/19_rnaseq/final_samplesheet.rds")
+
+g2s <- read_csv("/scratch/Shares/rinnclass/CLASS_working_files/class_exeRcises/analysis/18_running_RNAseq_NF_CORE/g2s.csv") %>%
+  dplyr::select(gene_id, gene_name)
+```
+``` {r correct samplesheet}
+# First changing the total sample to homo_sapiens_insoluble_fraction
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_R1"), "condition"] <- "homo_sapiens_insoluble_cytoplasmic_fraction"
+
+# same for changing insoluble_cytoplasmic_fraction condition to homo_sapiens_hepg2
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_insoluble_cytoplasmic_fraction_R2"), "condition"] <- "homo_sapiens_hepg2"
+
+
+# rewriting sample name
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_R1"), "sample_name"] <- "homo_sapiens_hepg2_insoluble_cytoplasmic_fraction_RX"
+
+
+# rewrite sample name
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_insoluble_cytoplasmic_fraction_R2"), "sample_name"] <- "homo_sapiens_hepg2_R1"
+
+# change RX back
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_insoluble_cytoplasmic_fraction_RX"), "sample_name"] <- "homo_sapiens_hepg2_insoluble_cytoplasmic_fraction_R2"
+
+# finally change replicate numbers -- NOT IDEAL!
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_R1"), "replicate"] <- "R1"
+
+# finally change replicate numbers -- NOT IDEAL!
+samplesheet[which(samplesheet$sample_name == "homo_sapiens_hepg2_insoluble_cytoplasmic_fraction_R2"), "replicate"] <- "R2"
+```
+
+``` {r prep for deseq2}
+# adding rownames to counts and converting to a matrix
+counts <- column_to_rownames(counts, "gene_id") %>%
+as.matrix()
+
+# Put the counts columns in the same order as the samplesheet
+counts <- counts[,samplesheet$sample_id]
+
+# Check
+all(colnames(counts) == samplesheet$sample_id)
+
+# Change names
+colnames(counts) <- samplesheet$sample_name
+
+# round for deseq
+counts <- round(counts)
+
+# remove all genes with 0 across all samples.
+counts_filtered <- counts[rowSums(counts) > 1,]
+
+# A FACTOR LEVEL is critical for DEseq2 to know which samples is which
+samplesheet$condition <- as.factor(samplesheet$condition)
+samplesheet$condition <- relevel(dds$condition, 2)
+```
+
+```{r run deseq}
+# (1) first run DESeq2 by creating a dds object.
+dds <- DESeqDataSetFromMatrix(countData = counts_filtered,
+                              # this is our counts data we read in
+                              colData = samplesheet,
+                              # telling DeSeq what env variable to use for sample sheet
+                              design = ~ condition)
+                              # perhaps most important is "condition" is a factor in samplesheet 
+
+# (2) run DESeq2 function on dds object
+dds <- DESeq(dds)
+resultsNames(dds)
+
+# (3) Normalize counts (rlog)
+# This basically is rank counts normalized to std error in replicates.
+rlog_counts <- rlog(dds, blind = TRUE)
+
+# (4) now we retrieve the values using the "assay" function that converts to rlog_counts)
+rlog_counts_matrix <- assay(rlog_counts)
+
+# save
+save(counts, counts_filtered, rlog, g2s, gencode_genes, rlog_counts, rlog_counts_matrix, samplesheet, file = "results/DESEQ_RLOG.RData")
+
+```
+```{r heatmap of all data}
+load("results/DESEQ_RLOG.RData", verbose = T)
+# Now we can make a heatmap of all the different fractions
+
+# Filtering out genes that don't have variance of more than 1 log2 of variance
+rlog_var_genes_all <- rlog_counts_matrix[rowVars(rlog_counts_matrix) > 1,]
+# row center the counts -- we need to flip the matrix
+# we can only scale cols so we need to transmute (t)
+# then turn it back with (t)
+scaled_counts <- t(scale(t(rlog_var_genes_all))) %>%
+  as.matrix()
+
+# saving
+pdf("figures/all_vs_total_genes_heatmap.pdf")
+pheatmap(scaled_counts, show_rownames = FALSE)
+dev.off()
+```
+```{r nuc vs cyto}
+samplesheet_nuc_cyto <- samplesheet %>%
+  filter(condition %in% c("homo_sapiens_cytosolic_fraction", "homo_sapiens_nuclear_fraction"))
+
+# check that the counts data contains the counts for the samples in the reduced sample sheet 
+all(samplesheet_nuc_cyto$sample_name %in% colnames(counts))
+
+samplesheet_nuc_cyto <- samplesheet_nuc_cyto %>%
+  as.data.frame()
+
+# adding row names
+rownames(samplesheet_nuc_cyto) <- samplesheet_nuc_cyto$sample_name
+# NOTE: DeSeq wants the control as a factor (fct), currently (chr)
+# The first factor level is the "control" and all the other levels
+# will be compared back to it.
+# Let's make the condition a factor:
+samplesheet_nuc_cyto$condition <- factor(samplesheet_nuc_cyto$condition, 
+                                         levels = c("homo_sapiens_nuclear_fraction",
+                                                    "homo_sapiens_cytosolic_fraction"))
+# IMPORTANT : values returned will be cytoplasmic/nuclear!!
+# IMPORTANT : !! FIRST FACTOR is denominator !!
+# Nuclear versus cytoplasmic differential expression (Salmon Counts input)
+
+# first reduce the counts matrix to just nuc and cyto samples.
+counts_nuc_cyto <- counts[, samplesheet_nuc_cyto$sample_name]
+
+# This is a good way to triple check everything is in order.
+rownames(samplesheet_nuc_cyto) == colnames(counts_nuc_cyto)
+
+# mode can convert chr to int, let's change everything from chr to int
+mode(counts_nuc_cyto) <- "integer"
+# Let's filter to genes that have at least one count across cols.
+nuc_cyto_counts_filtered <- counts_nuc_cyto[rowSums(counts_nuc_cyto) > 1,]
+
+# double checking here
+colnames(nuc_cyto_counts_filtered) == rownames(samplesheet_nuc_cyto)
+# looks good, now let's make the required DEseq raw counts
+dds <- DESeqDataSetFromMatrix(countData = nuc_cyto_counts_filtered,
+                              colData = samplesheet_nuc_cyto,
+                              design = ~ condition)
+dds <- DESeq(dds)
+resultsNames(dds)
+
+# let's remove intercept:
+res <- results(dds, name = "condition_homo_sapiens_cytosolic_fraction_vs_homo_sapiens_nuclear_fraction")
+
+res_df <- res %>% as.data.frame() %>%
+  # moving the row values to a "meta" column
+  rownames_to_column("gene_id") %>%
+  # merging in gene_name with gene_id
+  merge(g2s)
+
+# Now we have a DF with a lot of good info for each gene.
+write_rds(res_df, "results/nuclear_cyto_results_df.rds")
+
+# Nuclear genes
+nuclear_genes <- res_df %>% 
+  filter(log2FoldChange < -1, padj < 0.05) %>%
+  as.data.frame()
+# saving file
+write_csv(nuclear_genes, "results/nuclear_genes.csv")
+
+# Cytoplasmic genes:
+cyto_genes <- res_df %>%
+  filter(log2FoldChange > 1, padj < 0.05) %>%
+  as.data.frame()
+# saving file
+write_csv(cyto_genes, "cyto_genes.csv")
+
+combined_nuc_cyto_sig <- bind_rows(nuclear_genes, cyto_genes)
+# counts only in sig nuc cyto genes
+nuc_cyto_counts_filtered <-counts_filtered[rownames(counts_filtered) %in% combined_nuc_cyto_sig$gene_id , ]
+# scaling for a heatmap
+nuc_cyto_sig_scaled_counts <- t(scale(t(nuc_cyto_counts_filtered))) %>%
+  as.matrix()
+
+# make heat map
+pdf("figures/nuc_vs_cyto_heatmap.pdf")
+pheatmap(nuc_cyto_sig_scaled_counts, show_rownames = FALSE)
+dev.off()
+
+#reducing to just nuc and cyto counts
+just_nuc_cyto_counts_sig <-  nuc_cyto_sig_scaled_counts[, samplesheet_nuc_cyto$sample_name]
+# make heatmap
+pdf("figures/nuc_vs_cyto_sig_heatmap.pdf")
+pheatmap(just_nuc_cyto_counts_sig, show_rownames = FALSE)
+dev.off()
+```
+
+```{r comparison between each fraction}
+
+# We will use total RNA (whole cell) condition to compare everything back to.
+# we will want to set the factor levels with "total" first
+
+samplesheet$condition <- factor(samplesheet$condition, levels = c("homo_sapiens_hepg2", "homo_sapiens_membrane_fraction", "homo_sapiens_insoluble_cytoplasmic_fraction", "homo_sapiens_cytosolic_fraction", "homo_sapiens_nuclear_fraction"))
+
+
+# creating dds based on the factors above
+dds <- DESeqDataSetFromMatrix(countData = counts,
+                              colData = samplesheet,
+                              design = ~ condition)
+
+
+# Run the DESeq stats
+dds <- DESeq(dds)
+resultsNames(dds)
+```
+
+```{r compiling all the results}
+
+# A good starting point would be to use a for loop to make a data.frame 
+# with all the results
+results_names <- resultsNames(dds)
+
+# let's look
+results_names
+
+# We don't care about the intercept, so we can leave that out
+results_names <- results_names[-1]
+
+# as usual for for-loops we make an empty DF populated by for loop
+# First we set up a data frame for logFC results.
+res_df <- data.frame("gene_id" = character(), 
+                     "baseMean" = numeric(), 
+                     "log2FoldChange" = numeric(), 
+                     "lfcSE" = numeric(),
+                     "stat" = numeric(),
+                     "pvalue" = numeric(),
+                     "padj" = numeric(),
+                     "gene_name" = character(),
+                     "result_name" = character())
+
+# in parallel we can make the same results with "shrunken"
+# logFC this normalizes low expressed genes to be less significant.
+
+res_shrunken_df <- data.frame("gene_id" = character(), 
+                              "baseMean" = numeric(), 
+                              "log2FoldChange" = numeric(), 
+                              "lfcSE" = numeric(),
+                              "stat" = numeric(),
+                              "pvalue" = numeric(),
+                              "padj" = numeric(),
+                              "gene_name" = character(),
+                              "result_name" = character())
+
+# Now we will make a forloop to populate these data.frames with each DeSeq result !
+# We will also apply a shrunken log fold change 
+
+for(i in 1:length(results_names)) {
+  # grabbing the name of the result file i
+  results_name <- results_names[i]
+  # populating the res_df with results(dds)
+  res <- results(dds, name = results_name)
+  # populating res shrunken lfc with flcShrink
+  res_shrunken <- lfcShrink(dds, coef = results_name,  res = res)
+  
+  # populating data.frame 1 : temp_res_df
+  tmp_res_df <- res %>% as.data.frame() %>%
+    rownames_to_column("gene_id") %>%
+    merge(g2s) %>%
+    mutate(result_name = results_name)
+  
+  # populating data.frame 1 : temp_res_shrunken
+  tmp_res_shrunken_df <- res_shrunken %>% as.data.frame() %>%
+    rownames_to_column("gene_id") %>%
+    merge(g2s) %>%
+    mutate(result_name = results_name)
+  
+  # Append to full data.frame
+  res_df <- bind_rows(res_df, tmp_res_df)
+  res_shrunken_df <- bind_rows(res_shrunken_df, tmp_res_shrunken_df)
+}
+
+# Let's save these res_df
+write_rds(res_df, "results/deseq_results_df.rds")
+
+# shrunken log fold change results
+write_rds(res_shrunken_df, "results/deseq_results_shrunken_lfc_df.rds")
+
+```
+
+```{r significant nuclear and cyto}
+
+# reading in nuc_cyto results df
+nuc_cyto_res_df <- res_shrunken_df
+
+# Let's make list of all SIG gnees with  P <0.01 and FC > 1 in nuc-vs-cyto
+nuc_cyto_sig_genes <- nuc_cyto_res_df %>%
+  filter(padj < 0.01, abs(log2FoldChange) > 1)
+
+# Now we filter res_shrunken for gene_id column and subcellular fraction column 
+nuc_cyto_genes_to_plot <- res_shrunken_df %>%
+  filter(gene_id %in% nuc_cyto_sig_genes$gene_id, result_name %in% c("condition_homo_sapiens_nuclear_fraction_vs_homo_sapiens_hepg2", "condition_homo_sapiens_cytosolic_fraction_vs_homo_sapiens_hepg2"))
+  
+# We need a matrix for heatmap and converting nuc_cyto_genes/values from lines above to matrix
+lfc_matrix <- nuc_cyto_genes_to_plot %>% 
+  dplyr::select(gene_id, log2FoldChange, result_name) %>% 
+  pivot_wider(names_from = "result_name", values_from = "log2FoldChange") %>%
+  column_to_rownames("gene_id") %>%
+  as.matrix()
+
+# saving
+pdf("figures/nuc_vs_cyto_genes_heatmap.pdf")
+pheatmap::pheatmap(lfc_matrix, show_rownames = FALSE, breaks = seq(-3, 3, length.out = 100))
+dev.off()
+
+```
+
+``` {r make tpm from salmon_tpm}
+tpm <- salmon_tpm %>% 
+  pivot_longer(cols = 2:ncol(.), names_to = "sample_id", values_to = "tpm") %>%
+  merge(samplesheet) %>%
+  group_by(gene_id, condition) %>%
+  summarize(tpm = mean(tpm, na.rm = T)) %>%
+  pivot_wider(names_from = condition, values_from = tpm, names_prefix = "tpm_")
+```
+
+``` {r}
+# This will merge on the on teh gene_id column
+promoter_features_df <- merge(peak_occurence_df, tpm)
+
+# saving this file
+write.csv(promoter_features_df, "results/promoter_feature_df_tpm.csv")
+
+# let's plot the number of DBPs bound as a densuty plot.
+ggplot(promoter_features_df, aes(x = number_of_dbp)) +
+  geom_density() 
+
+# Let's save
+  ggsave("figures/DBP_binding_density_plot.pdf")
+```
+
+```{r defining HEPG2 reservoirs}
+
+promoter_features_df$hepg2_reservoir <- 
+  as.numeric(promoter_features_df$number_of_dbp > 200 & 
+               promoter_features_df$tpm_homo_sapiens_hepg2 < 0.001)
+
+# seeing what we got with table
+table(promoter_features_df$hepg2_reservoir)
+
+reservoirs <- promoter_features_df[promoter_features_df$hepg2_reservoir == 1,]
+write.csv(reservoirs, "results/reservoirs.csv", row.names=FALSE)
+
+# RESULT:
+# (1) There are 0 reservoirs in this small data set :) but there is a reason
+# to do this in the larger dataset. 
+
+```
+
+```{r DBP promoter binding versus total RNA expression}
+
+# We will plot:
+# x-axis = number of DBPs bound on the promoter
+# y-axis = expression level of that gene.
+# y-axis total RNA TPM (+0.0001 to avoid 0 issues)
+       # x-axis is number of DBPs
+ggplot(promoter_features_df, 
+            aes(y = log2(tpm_homo_sapiens_hepg2 + 0.001), x = number_of_dbp, color = gene_type)) + 
+geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_hepg2 > 0.001),
+             shape = 17, alpha = 0.7) +
+  
+  # Adding a generative additive model 
+  geom_smooth(method = 'gam', formula = y ~ s(x, bs = "cs")) +
+  # this adds the statistics from the gam to the figure
+  stat_cor() +
+  geom_smooth(method = "lm") +
+  # this is just to make it look nice.
+  scale_x_continuous(expand = c(0,0)) +
+  # adding colors manually
+  scale_color_manual(values = c("#a8404c", "#424242"), name = "Gene type") + 
+  # title
+  ggtitle("Expression vs. promoter binding events") + 
+  # labeling axes
+  xlab(expression('Number of TFs')) +
+  ylab(expression(log[2](TPM))) 
+
+ggsave("figures/Expression_vs_DBP_promoter_binding.pdf")
+
+```
+
+```{r significant genes}
+# significant nuclear genes
+#nuc_sig <- nuc_cyto_sig_genes %>%
+#  filter(result_name == "condition_homo_sapiens_nuclear_fraction_vs_homo_sapiens_hepg2")
+
+lncrna_nuc_sig <- peak_occurence_df %>%
+  filter(gene_id %in% nuclear_genes$gene_id,
+         gene_type == "lncRNA")
+
+mrna_nuc_sig <- peak_occurence_df %>%
+  filter(gene_id %in% nuclear_genes$gene_id,
+         gene_type == "protein_coding")
+
+# significant cytosolic genes          
+#cyto_sig <- nuc_cyto_sig_genes %>%
+#  filter(result_name == "condition_homo_sapiens_cytosolic_fraction_vs_homo_sapiens_hepg2")
+
+lncrna_cyto_sig <- peak_occurence_df %>%
+  filter(gene_id %in% cyto_genes$gene_id,
+         gene_type == "lncRNA")
+
+mrna_cyto_sig <- peak_occurence_df %>%
+  filter(gene_id %in% cyto_genes$gene_id,
+         gene_type == "protein_coding")
+```
+
+```{r save}
+save(nuc_cyto_sig_genes, promoter_features_df, nuclear_genes, cyto_genes, res_df,
+     mrna_nuc_sig, lncrna_nuc_sig, mrna_cyto_sig, lncrna_cyto_sig, reservoirs,
+     file = "results/nuc_cyto.RData")
+```
+
+
