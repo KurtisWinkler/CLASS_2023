@@ -51,7 +51,7 @@ Let's see how handy this function is now!
 ```{r individual meta plots}
 
 # HEP300
-plot(profile_tss(consensus_peaks[["EP300"]], lncrna_mrna_promoters))
+plot(profile_tss(consensus_peaks[["BRCA1"]], lncrna_mrna_promoters))
 
 # H3K27me3
 plot(profile_tss(consensus_peaks[["H3K27me3"]], lncrna_mrna_promoters))
@@ -89,7 +89,7 @@ When we move to all DBPs (480) it can take 4 hours !
 metaplot_df <- data.frame(x = integer(), dens = numeric(), dbp = character())
 
 # refresh what the output of profile_tss is:
-test <- profile_tss(consensus_peaks[["HDAC2"]], lncrna_mrna_promoters)
+test <- profile_tss(consensus_peaks[["BRCA1"]], lncrna_mrna_promoters)
 
 # Writting a for loop to calculate promoter coverage for all consensus_peaks:
 for(i in 1:length(consensus_peaks)) {

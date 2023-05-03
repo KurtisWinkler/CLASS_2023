@@ -1,0 +1,236 @@
+---
+title: "Class_exercise"
+author: "Kurt Winkler"
+date: "3/16/2023"
+output: github_document
+---
+
+
+# Load the libraries you need
+# Load functions you need "my_class_functions"
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = F)
+library(GenomicRanges)
+library(ggplot2)
+#library(ggpubr)
+library(tidyverse)
+library(IRanges)
+source("/scratch/Shares/rinnclass/CLASS_2023/kurt/CLASS_2023/BCHM5631_functions.R")
+
+```
+
+
+# load in your peak files for each replicate of each protein
+# Here I am starting to analyze my data for my proteins of interest:
+# proteinX, Y, Z .....
+# First I will read in each replicate file
+```{r load in peak files}
+# filepath to import peaks
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/kurt"
+peak_path <- "CLASS_2023/group_chip/kurt/results/bwa/mergedLibrary/macs/broadPeak"
+broadpeakfilepath <- file.path(basepath, peak_path)
+
+# import peaks
+peak_list <- import_peaks(consensus_file_path = broadpeakfilepath)
+
+# printing out a table of the number of peaks in each file:
+peak_num <- sapply(peak_list, length) %>% as.data.frame()
+names(peak_num) <- c("num_peaks")
+peak_num
+
+```
+
+
+# Now I am going to create consensus peaks for each protein
+```{r consensus peaks}
+dbps <- unique(sapply(names(peak_list), function(x) {
+   unlist(strsplit(x, "_"))[1]
+}))
+# Let's run it !
+consensus_list <- lapply(dbps, consensus_from_reduced, peak_list)
+names(consensus_list) <- dbps
+
+# export consensus peaks to results folder
+if (dir.exists("results") == FALSE) {
+  dir.create("results") }
+
+for(i in 1:length(consensus_list)) {
+rtracklayer::export(consensus_list[[i]], paste0("results/", names(consensus_list)[i],"_consensus_peaks.bed")) }
+```
+
+# Now I am going to make my consensus peaks compatable with UCSC genome browser
+```{r}
+# paths for UCSC output
+consensus_peak_path <- "CLASS_2023/CLASSES/05_R_analyses/class_exercise/results"
+consensusFilePath <- file.path(basepath, consensus_peak_path)
+export_path <- file.path(consensusFilePath, "UCSC")
+
+# print out consensus peak files in a results/UCSC directory
+if (dir.exists("results/UCSC") == FALSE) {
+  dir.create("results/UCSC") }
+
+ucsc_formating(consensusFilePath = consensusFilePath, export_path = export_path)
+```
+
+# I am curious if my proteins are transcription factors so I will use the annotations
+# in a cell paper I found and see
+```{r}
+annot_path <- file.path(basepath, "CLASS_2023/CLASSES/05_R_analyses/01_peak_features/results/peak_features.RData")
+load(annot_path, verbose = T)
+
+options(warn=-1)
+human_tfs <- readxl::read_excel("results/TF_annotations.xlsx",
+                                sheet = 2, skip = 1)
+
+# let's rename the 4th column to indicate if it is a TF.
+names(human_tfs)[4] <- "is_tf"
+
+# now let's intersect gene names that are in our ChIP data and has TF identity.
+length(which(tolower(num_peaks_df$dbp) %in% tolower(human_tfs$Name)))
+
+# first let's filter and grab the first 4 columns that match DBPs in num_peaks_df
+human_tfs <- human_tfs[tolower(human_tfs$Name) %in% tolower(dbps), 1:4]
+# if you leave the object name you just created in the environment
+# it will print out in the knit. For example :
+human_tfs
+
+```
+
+
+
+
+# Now I want to compare a protein with a previous analysis 
+```{r}
+
+# go to UCSC genome browser and load in a peak file for a given protein
+# load in the data for the same protein from the previous analysis
+# compare how your consensus peaks are similar or different to previous analyses
+
+#Consensus peaks are NOT similar to previous analysis
+knitr::include_graphics("results/UCSC/BRCA1_compare_2.png")
+
+```
+
+
+# Now I am going to determine how my peaks for each protein overlap annotations of the genome
+# First I will find the overlaps between my consensus peaks with promoters of lncRNA and mRNA promoters
+
+```{r}
+cat("number of consensus peaks\n")
+sapply(consensus_list, length)
+
+# counting promoter overlaps for mrna and lncrna
+promoter_peak_counts <- count_peaks_per_feature(lncrna_mrna_promoters, consensus_peaks, type = "counts")
+
+# find overlaps of promoters for each protein
+cat("\nlncrna and mRNA promoter overlaps\n")
+rowSums(promoter_peak_counts)
+```
+
+## results: 
+#1) What can you determine from these overlaps?
+From these overlaps, I can determine that a large proportion of ATF3 and BRCA1
+consensus peaks overlap promoters. About half of BHLHE40 consensus peaks overlap
+promoters and few ARID3A and CEBPB consensus peaks overlap promoters.
+
+
+# Now I want to compare the overlaps with lncRNA and mRNA promoters seperately 
+```{r}
+# Now let's break these promoters into two groups "lncrna" and "mrna"
+# lncrna promoter overlaps
+cat("lncrna promoter overlaps\n")
+rowSums(promoter_peak_counts[,lncrna_gene_ids])
+
+cat("\nmRNA promoter overlaps\n")
+# mrna promoter overlaps
+rowSums(promoter_peak_counts[,mrna_gene_ids])
+```
+## results:
+# 1) What is the difference in overlaps between mRNA and lncRNA promoters
+For every protein, there are many more overlaps with mRNA compared to lncRNA,
+around 3-4x more in mRNA than lncRNA
+
+# Now I am going to test if there is more binding over gene bodies than promoters
+# I will seperate lncRNA and mRNA gene bodies to find the overlaps 
+
+```{r}
+genebody_peak_counts <- count_peaks_per_feature(mrna_lncrna_genes, 
+                                                consensus_peaks, 
+                                                type = "counts")
+
+# All gene bodies
+cat("lncrna and mRNA genebody overlaps\n")
+rowSums(genebody_peak_counts)
+
+# lncRNA gene bodies 
+cat("\nlncrna genebody overlaps\n")
+rowSums(genebody_peak_counts[,lncrna_gene_ids])
+
+# mRNA gene bodies
+cat("\nmRNA genebody overlaps\n")
+rowSums(genebody_peak_counts[,mrna_gene_ids])
+
+```
+## results: 
+# 1) Do my proteins have more overlaps with promoters or genebodies?
+All of my proteins have more overlaps with genebodies, especially
+mRNA genebodies
+
+
+# It is nice and all to find overlaps, but I am interested in how many proteins
+# bind a specific promoter. I will use my handy "occurence" parameter in 
+# " count peaks per feature" 
+
+```{r}
+promoter_peak_occurence <- count_peaks_per_feature(lncrna_mrna_promoters, consensus_peaks, 
+                                               type = "occurrence")
+
+max(colSums(promoter_peak_occurence))
+```
+## results: I find the max number of proteins on a promoter to be X
+The maximum number of protein on a promoter is 5, meaning that all my
+proteins bind to a specific promoter
+
+# Now I want to start plotting my results
+# First I will see if there is a realtionship between peak number and total DNA covered
+```{r}
+
+ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length)) +
+  geom_point() + 
+
+  ylab("BP covered") +
+  xlab("Number of peaks") +
+  ggtitle("Peak count vs. total bases covered")
+```
+
+# Now I want to color my plot by wether the protein is a TF or not.
+```{r}
+ggplot(num_peaks_df, aes(x = num_peaks, y = total_peak_length,
+                         color = tf == "Yes")) +
+  geom_point() + 
+
+  ylab("BP covered") +
+  xlab("Number of peaks") +
+  ggtitle("Peak count vs. total bases covered")
+```
+
+# I want to make a histogram of the number of peaks for each of my proteins
+
+```{r}
+ggplot(num_peaks_df, aes(x = num_peaks)) + 
+  geom_histogram(bins = 20)
+```
+
+
+# Now I want to facet this by the type of DNA binding domain my protein has.
+```{r}
+ggplot(num_peaks_df, aes(x = num_peaks)) + 
+  facet_wrap(dbd ~ .) +
+  geom_histogram(bins = 20)
+
+```
+
+
+# Cool now I am ready to send my result to my collaborator as a
+# Knitted document

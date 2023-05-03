@@ -293,4 +293,51 @@ EXCERCISE
 
 Create a function in your class_functions.R file
 
+# Class code
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/kurt"
+peak_path <- "CLASS_2023/group_chip/kurt/results/bwa/mergedLibrary/macs/broadPeak"
+broadpeakfilepath <- file.path(basepath, peak_path)
+
+
+# Now let's make a list of filepaths to each peak file -- "list.files"
+# we add a pattern parameter to just load .broadPeaks as there are many other types.
+
+fl <- list.files(broadpeakfilepath, 
+                 full.names=TRUE, pattern = ".broadPeak")
+                 
+# grab just one protein (can be the one from your group)
+fl_brca1 <- fl[grep("BRCA1", fl)]
+
+# make function
+import_peaks <- function(consensus_file_path = broadpeakfilepath) {
+  peak_files <- list.files(consensus_file_path, full.names = T, pattern = ".broadPeak")
+  dbp_name <- sapply(peak_files, function(x){
+    y <-  str_extract(x, "([^\\/]+$)")
+    # NOTE ALTERNATIVE Gsub
+    # gsub("_peaks.broadPeak", "", y)
+    paste(unlist(strsplit(y, "_"))[c(1,2)], collapse = "_") 
+    
+    })
+  
+# NOW FOR LOOP TO IMPORT FILES
+# setting an empty list "peak_list" to be filled by for loop
+  peak_list <- c()
+  
+  # the for loop !
+  for(i in 1:length(peak_files)) {
+    # Import peaks
+    peaks <- rtracklayer::import(peak_files[i])
+    # Append this GRanges object to the of the list.
+    peak_list <- c(peak_list, peaks)
+    # Name the list elements by their TF name.
+    names(peak_list)[length(peak_list)] <- dbp_name[i]
+  }
+  return(peak_list)
+}
+
+my_peaks <- import_peaks(consensus_file_path = broadpeakfilepath)
+
+# let's see how many peaks are in each file with 1 line!
+num_peaks <- sapply(my_peaks, length) %>% as.data.frame()
+
 

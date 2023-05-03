@@ -390,3 +390,67 @@ paste0("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/04_R_basics/r
 
 #TODO is there an lapply that can be done? 
 
+
+# Code from class
+
+basepath <- "/scratch/Shares/rinnclass/CLASS_2023/kurt"
+path <- "CLASS_2023/group_chip/kurt/results/bwa/mergedLibrary/macs/broadPeak"
+
+# first we read the peak files in as gRanges object with rtracklayer function.
+peaks1 <- rtracklayer::import(file.path(basepath,path, "BRCA1_R1_peaks.broadPeak"))
+peaks2 <- rtracklayer::import(file.path(basepath,path, "BRCA1_R2_peaks.broadPeak"))
+
+# Load Gencode-v32: for genome features.
+gencode_gr <- rtracklayer::import("/scratch/Shares/rinnclass/CLASS_2023/data/data/genomes/gencode.v32.annotation.gtf")
+
+# let's add 1Kb upstream and downstream from the TSS to define "promoters"
+gencode_promoters <- promoters(gencode_gr[gencode_gr$type == "gene"], 
+                               upstream = 1e3, 
+                               downstream = 1e3)
+
+# How many peaks overlap promoters?
+promoter_overlaps_peaks1 <- findOverlaps(peaks1, gencode_promoters)
+promoter_overlaps_peaks2 <- findOverlaps(peaks2, gencode_promoters)
+promoter_overlaps_peaks1
+promoter_overlaps_peaks2
+# find the overlaps of the overlaps
+peak1_ov_gr <- peaks1[unique(promoter_overlaps_peaks1@from)] 
+peak2_ov_gr <- peaks2[unique(promoter_overlaps_peaks2@from)]
+ov_of_ov <- findOverlaps(peak1_ov_gr, peak2_ov_gr)
+ov_of_ov
+
+# find overlaps of overlaps again - simpler
+promoter_overlaps_peaks1 <- subsetByOverlaps(peaks1, gencode_promoters)
+promoter_overlaps_peaks2 <- subsetByOverlaps(peaks2, gencode_promoters)
+# now overlapping the two overlaps by findOverlaps
+subset_overlaps_peaks <- findOverlaps(promoter_overlaps_peaks1, promoter_overlaps_peaks2)
+promoter_overlaps_peaks1
+promoter_overlaps_peaks2
+subset_overlaps_peaks
+
+# how many unique peaks resulted in the overlaps
+# we can use length and unique to solve this
+length(unique(subset_overlaps_peaks@to))
+length(unique(subset_overlaps_peaks@from))
+# Yup there were only 1042 peaks that had 1045 overlaps!
+
+table(table(subset_overlaps_peaks@from))
+#1     2     3     4 
+#1041  4
+
+table(table(subset_overlaps_peaks@to))
+#     1    2    3 
+#  1036    5    1 
+
+# This also adds up to 12,961 with
+# 12,482 unique peaks
+
+# Now let's overlap our peak files and then overlap with promoters.
+# Percentage of consensus peaks that overlap promoters?
+consensus_peaks <- subsetByOverlaps(peaks1, peaks2)
+consensus_peaks
+# 27,206 
+peaks1
+# 33,582
+peaks2
+# 43,435

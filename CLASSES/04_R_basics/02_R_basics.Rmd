@@ -36,9 +36,14 @@ Since that is a lot of path typing each time let's shorten it my using file.path
 # we assign it the values in the file using the assignment opperator " <- " 
 basepath <- "/scratch/Shares/rinnclass/CLASS_2023/<your_folder>"
 
+
+kurt_basepath <- "/scratch/Shares/rinnclass/CLASS_2023/kurt"
+
 # we can then add the rest of the path as such:
 Pol2_peak1 <- read_tsv(file.path(basepath, " rest of file path"))
 
+kurt_peak1 <- read_tsv(file.path(kurt_basepath,
+"CLASS_2023/group_chip/kurt/results/bwa/mergedLibrary/macs/broadPeak/BRCA1_R1_peaks.broadPeak"), col_names=FALSE)
 
 # now we can read in the peak file using file.path() function , rest of path
 # we will use the "read_tsv" baseR function and assign it ( <- ) to Pol2_peak1
@@ -89,6 +94,9 @@ names(Pol2_peak1)[2] <- 'start'
 
 # This will get really repetitive but works. Here is a better solution:
 names(Pol2_peak1) <- c('chromosome', 'start', 'end', 'name', 'score', 'strand', 
+                       'signalValue', 'pValue', 'qValue')
+
+names(kurt_peak1) <- c('chromosome', 'start', 'end', 'name', 'score', 'strand', 
                        'signalValue', 'pValue', 'qValue')
 
 # here C makes a concatenated list of values -- trick is to make sure in right order!!
@@ -197,6 +205,7 @@ Let's get some info make some basic plots to get to know our data better:
 # let's use summary again:
 
 summary(Pol2_peak1$peak_width)
+summary(kurt_peak1$peak_width)
 # cool we see smallest peak is 114 bp and longest 12.4 Kb !
 
 # let's make a histogram plot of peak size distributions using the base R hist func:
@@ -206,20 +215,22 @@ summary(Pol2_peak1$peak_width)
 # for now just the basics:
 
 hist(Pol2_peak1$peak_width)
-
+hist(kurt_peak1$peak_width)
 # looks like most are small, let's add more breaks
 
 hist(Pol2_peak1$peak_width, breaks = 50)
-
+hist(kurt_peak1$peak_width, breaks = 50)
 # now let's set the x axis limits to ~3Kb
 
 hist(Pol2_peak1$peak_width, breaks = 50, xlim = c(0,3000))
+hist(kurt_peak1$peak_width, breaks = 50, xlim = c(0,3000))
 
 # nice so we observe a left centered normal dist of sizes.
 
 # let's try a density plot -here we need to calculate density then plot:
 
 density <- density(Pol2_peak1$peak_width)
+density <- density(kurt_peak1$peak_width)
 
 # now we can use plot to see the values of density
 plot(density, xlim = c(0,3000))
@@ -263,6 +274,21 @@ Exercise: compare properties of other replicates
 
 # Do the same as above for the replicates of your groups ChIPseq
 
+# Code from class
+kurt_basepath <- "/scratch/Shares/rinnclass/CLASS_2023/kurt"
 
+kurt_peak1 <- read_tsv(file.path(kurt_basepath,
+"CLASS_2023/group_chip/kurt/results/bwa/mergedLibrary/macs/broadPeak/BRCA1_R3_peaks.broadPeak"), col_names=FALSE)
 
+kurt_peak1 <- read_tsv("/scratch/Shares/rinnclass/CLASS_2023/JR/CLASS_2023/CLASSES/03_Nextflow/00_Pol2_NF_CORE_RUN/results/bwa/mergedLibrary/macs/broadPeak/POLR2A_R1_peaks.broadPeak", col_names = F)
 
+names(kurt_peak1) <- c('chromosome', 'start', 'end', 'name', 'score', 'strand', 
+                       'signalValue', 'pValue', 'qValue')
+
+kurt_peak1 <- kurt_peak1[kurt_peak1$chromosome %in% c(paste0("chr", 1:22), "chrM", "chrX", "chrY"),]
+
+kurt_peak1 <- kurt_peak1 %>% mutate(peak_width = end - start)
+
+kurt_peak1 %>%
+  ggplot(aes(x = peak_width, y = qValue)) +
+  geom_point()

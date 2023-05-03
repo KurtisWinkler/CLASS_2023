@@ -21,3 +21,25 @@ Use what you have learned in class to uncover
 new results from this daunting data set. 
 
 # Good luck the genome depends on you!
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = F)
+library(GenomicRanges)
+library(tidyverse)
+library(IRanges)
+source("../../util/my_class_functions.R")
+
+setwd("/scratch/Shares/rinnclass/CLASS_2023/kurt/CLASS_2023/CLASSES/06_final_going_global")
+
+# filepath to import peaks
+broadpeakfilepath <- "/scratch/Shares/rinnclass/CLASS_2023/data/data/peaks"
+```
+
+# import peaks
+peak_list <- import_peaks(consensus_file_path = broadpeakfilepath)
+
+
+
+
+

@@ -248,3 +248,18 @@ EXCERCISE
 Find overlaps for replicates of your group's proteins. 
 How do they vary? Peak # differences?
 
+#Code from class
+
+kurt_basepath <- "/scratch/Shares/rinnclass/CLASS_2023/kurt"
+kurt_path <- "CLASS_2023/group_chip/kurt/results/bwa/mergedLibrary/macs/broadPeak"
+
+
+# first we read the peak files in as gRanges object with rtracklayer function.
+peaks1 <- rtracklayer::import(file.path(kurt_basepath,kurt_path, "BRCA1_R1_peaks.broadPeak"))
+peaks2 <- rtracklayer::import(file.path(kurt_basepath,kurt_path, "BRCA1_R2_peaks.broadPeak"))
+
+# now we can use the findOverlaps function to see what overlaps!
+ovf <- findOverlaps(peaks1, peaks2)
+length(peaks1)
+length(peaks2)
+length(ovf)

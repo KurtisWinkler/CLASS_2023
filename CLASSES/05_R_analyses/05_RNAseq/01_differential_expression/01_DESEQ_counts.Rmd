@@ -20,7 +20,6 @@ BiocManager::install("DESeq2")
 
 # now load the package
 library(DESeq2)
-
 ```
 Accompanying YouTube Video:
 https://youtu.be/czZoz4JUWdE
@@ -287,6 +286,12 @@ load("results/DESEQ_RLOG.RData", verbose = T)
 
 
 ```
+
+#Download Deseq2
+install.packages("https://cran.r-project.org/src/contrib/Archive/RcppEigen/RcppEigen_0.3.3.7.0.tar.gz", repos=NULL, type="source")
+install.packages("https://cran.r-project.org/src/contrib/Archive/interp/interp_1.0-33.tar.gz", repos=NULL, type="source")
+install.packages("latticeExtra")
+install.packages("https://cran.r-project.org/src/contrib/Archive/Hmisc/Hmisc_4.7-0.tar.gz", repos=NULL, type="source")
 
 
 
