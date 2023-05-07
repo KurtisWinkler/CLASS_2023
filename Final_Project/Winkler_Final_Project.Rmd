@@ -2,7 +2,11 @@
 title: "Final_class_project"
 author: "kurt"
 date: "4/24/2023"
-output: github_document
+output: 
+  html_document:
+    df_print: paged
+    self_contained: no
+    keep_md: yes
 ---
 # Your mission should you choose to accept it 
 There is an enormous amount of data in ENCODE that 
