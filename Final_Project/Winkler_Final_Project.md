@@ -33,7 +33,7 @@ load("04_RNAseq/results/nuc_cyto.RData", verbose = T)
 knitr::include_graphics("01_peaks/figures/peak_number_vs_coverage.pdf")
 ```
 
-<img src="01_peaks/figures/peak_number_vs_coverage.pdf" width="1567"/>
+![](01_peaks/figures/peak_number_vs_coverage.pdf)<!-- -->
 
 ```r
 # What is the distribution of promoter overlaps versus gene-bodies (hint hist)
