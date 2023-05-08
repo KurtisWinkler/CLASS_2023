@@ -93,7 +93,7 @@ Now let's use GGDENDRO (dendrogram) package that will plot the branch lengths th
 
 # Nice let's save this using 'ggsave': since we used ggplot
 
-ggsave("figures/ggdendro_plot.pdf", height = 50, width = 12, limitsize = F)
+ggsave("figures/ggdendro_plot.png", height = 50, width = 12, limitsize = F)
 
 ```
 
@@ -120,7 +120,7 @@ bin_hier_lncrna <- hclust(dist(lncrna_peak_occurence, method = "binary"))
 ggdendro::ggdendrogram(bin_hier_lncrna, rotate = T,  size = 3)
  
 # Now let's save this figure
-ggsave("figures/lncrna_hclust_binary_dist.pdf", height = 49, width = 6)
+ggsave("figures/lncrna_hclust_binary_dist.png", height = 49, width = 6)
 
 
 ```
@@ -144,7 +144,7 @@ bin_hier_mrna <- hclust(dist(mrna_peak_occurence, method = "binary"))
 ggdendro::ggdendrogram(bin_hier, rotate = TRUE,  size = 3)
 
 # saving
-ggsave("figures/mrna_hclust_binary_dist.pdf", height = 44, width = 6)
+ggsave("figures/mrna_hclust_binary_dist.png", height = 49, width = 6)
 
 
 ```

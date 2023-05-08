@@ -84,7 +84,7 @@ counts_filtered <- counts[rowSums(counts) > 1,]
 
 # A FACTOR LEVEL is critical for DEseq2 to know which samples is which
 samplesheet$condition <- as.factor(samplesheet$condition)
-samplesheet$condition <- relevel(dds$condition, 2)
+samplesheet$condition <- relevel(samplesheet$condition, 2)
 ```
 
 ```{r run deseq}
@@ -124,7 +124,7 @@ scaled_counts <- t(scale(t(rlog_var_genes_all))) %>%
   as.matrix()
 
 # saving
-pdf("figures/all_vs_total_genes_heatmap.pdf")
+png("figures/all_vs_total_genes_heatmap.png")
 pheatmap(scaled_counts, show_rownames = FALSE)
 dev.off()
 ```
@@ -205,7 +205,7 @@ nuc_cyto_sig_scaled_counts <- t(scale(t(nuc_cyto_counts_filtered))) %>%
   as.matrix()
 
 # make heat map
-pdf("figures/nuc_vs_cyto_heatmap.pdf")
+png("figures/nuc_vs_cyto_heatmap.png")
 pheatmap(nuc_cyto_sig_scaled_counts, show_rownames = FALSE)
 dev.off()
 
@@ -330,7 +330,7 @@ lfc_matrix <- nuc_cyto_genes_to_plot %>%
   as.matrix()
 
 # saving
-pdf("figures/nuc_vs_cyto_genes_heatmap.pdf")
+png("figures/nuc_vs_cyto_genes_heatmap.png")
 pheatmap::pheatmap(lfc_matrix, show_rownames = FALSE, breaks = seq(-3, 3, length.out = 100))
 dev.off()
 
@@ -357,7 +357,7 @@ ggplot(promoter_features_df, aes(x = number_of_dbp)) +
   geom_density() 
 
 # Let's save
-  ggsave("figures/DBP_binding_density_plot.pdf")
+  ggsave("figures/DBP_binding_density_plot.png")
 ```
 
 ```{r defining HEPG2 reservoirs}
@@ -405,7 +405,7 @@ geom_point(data = promoter_features_df %>% filter(tpm_homo_sapiens_hepg2 > 0.001
   xlab(expression('Number of TFs')) +
   ylab(expression(log[2](TPM))) 
 
-ggsave("figures/Expression_vs_DBP_promoter_binding.pdf")
+ggsave("figures/Expression_vs_DBP_promoter_binding.png")
 
 ```
 

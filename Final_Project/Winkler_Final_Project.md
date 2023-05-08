@@ -108,10 +108,10 @@ cat("Genes that make sense to cluster together are ones associated with either l
 
 ``` r
 # Find a cluster of genes your interested in and can figure out what those genes do -- are there unknown genes in there too? If so maybe one could hypothesize they have a similar function to the known genes (Hint ZNFs)
-knitr::include_graphics("02_clustering/figures/dbp_hclust_dendro.pdf")
+knitr::include_graphics("02_clustering/figures/ggdendro_plot.png")
 ```
 
-![](02_clustering/figures/dbp_hclust_dendro.pdf)<!-- -->
+<img src="02_clustering/figures/ggdendro_plot.png" width="3600" />
 
 ``` r
 cat(paste0("Gene Cluster: NRL, ZNF280B",
@@ -124,16 +124,16 @@ cat(paste0("Gene Cluster: NRL, ZNF280B",
 
 ``` r
 # if we cluster by lncRNA and mRNA separately what are some similarities and differences?
-knitr::include_graphics("02_clustering/figures/lncrna_hclust_binary_dist.pdf")
+knitr::include_graphics("02_clustering/figures/lncrna_hclust_binary_dist.png")
 ```
 
-![](02_clustering/figures/lncrna_hclust_binary_dist.pdf)<!-- -->
+<img src="02_clustering/figures/lncrna_hclust_binary_dist.png" width="1800" />
 
 ``` r
-knitr::include_graphics("02_clustering/figures/mrna_hclust_binary_dist.pdf")
+knitr::include_graphics("02_clustering/figures/mrna_hclust_binary_dist.png")
 ```
 
-![](02_clustering/figures/mrna_hclust_binary_dist.pdf)<!-- -->
+<img src="02_clustering/figures/mrna_hclust_binary_dist.png" width="1800" />
 
 ``` r
 cat(paste0("Similarities: similar amount of genes closely clustered, some genes tightly clustered in both (FOXA1/2)",
@@ -190,17 +190,17 @@ promoters
 
 ``` r
 # What is the relationship between number of DBPS bound on a promoter versus RNA output (hint TPM)
-knitr::include_graphics("04_RNAseq/figures/Expression_vs_DBP_promoter_binding.pdf")
+knitr::include_graphics("04_RNAseq/figures/Expression_vs_DBP_promoter_binding.png")
 ```
 
-![](04_RNAseq/figures/Expression_vs_DBP_promoter_binding.pdf)<!-- -->
+<img src="04_RNAseq/figures/Expression_vs_DBP_promoter_binding.png" width="2187" />
 
 ``` r
 # Let's make a heatmap of genes that are variable across samples 
-knitr::include_graphics("04_RNAseq/figures/all_vs_total_genes_heatmap.pdf")
+knitr::include_graphics("04_RNAseq/figures/all_vs_total_genes_heatmap.png")
 ```
 
-![](04_RNAseq/figures/all_vs_total_genes_heatmap.pdf)<!-- -->
+<img src="04_RNAseq/figures/all_vs_total_genes_heatmap.png" width="480" />
 
 ``` r
 # Which subfraction of the cell has the highest expression.
@@ -211,10 +211,10 @@ cat("The nuclear subfraction of the cell has the highest expression")
 
 ``` r
 # Let's make a heatmap of nuclear versus cytoplasmic expression
-knitr::include_graphics("04_RNAseq/figures/nuc_vs_cyto_genes_heatmap.pdf")
+knitr::include_graphics("04_RNAseq/figures/nuc_vs_cyto_genes_heatmap.png")
 ```
 
-![](04_RNAseq/figures/nuc_vs_cyto_genes_heatmap.pdf)<!-- -->
+<img src="04_RNAseq/figures/nuc_vs_cyto_genes_heatmap.png" width="480" />
 
 ``` r
 # How many lncRNA and mRNA genes are sig in nuclear or cyto
