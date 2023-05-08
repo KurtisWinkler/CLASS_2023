@@ -2,11 +2,8 @@
 title: "Final_class_project"
 author: "kurt"
 date: "4/24/2023"
-output: 
-  html_document:
-    df_print: paged
-    self_contained: no
-    keep_md: yes
+output: github_document
+
 ---
 # Your mission should you choose to accept it 
 There is an enormous amount of data in ENCODE that 
@@ -17,10 +14,11 @@ pipeline.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.path = "/figures/")
 options(stringsAsFactors = F)
 library(tidyverse)
 
-setwd("/scratch/Shares/rinnclass/CLASS_2023/kurt/CLASS_2023/Final_Project")
+#setwd("/scratch/Shares/rinnclass/CLASS_2023/kurt/CLASS_2023/Final_Project")
 
 ```
 
@@ -35,10 +33,10 @@ load("04_RNAseq/results/nuc_cyto.RData", verbose = T)
 # Any chip data less 1,000 peaks was filtered out
 
 # How does peak number and genome coverage compare
-knitr::include_graphics("01_peaks/figures/peak_number_vs_coverage.pdf")
+knitr::include_graphics("01_peaks/figures/peak_number_vs_coverage.png")
 
 # What is the distribution of promoter overlaps versus gene-bodies (hint hist)
-knitr::include_graphics("01_peaks/figures/peak_distribution.pdf")
+knitr::include_graphics("01_peaks/figures/peak_distribution.png")
 
 # Make a list of genes that are "super binders" 
 super_binders <- peak_occurence_df[peak_occurence_df$number_of_dbp > 200,]
